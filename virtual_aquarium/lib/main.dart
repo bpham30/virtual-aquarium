@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 void main() {
   runApp(const MyApp());
@@ -28,11 +29,25 @@ class AquariumScreen extends StatefulWidget {
   _AquariumScreenState createState() => _AquariumScreenState();
 }
 
-class _AquariumScreenState extends State<AquariumScreen> {
+class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStateMixin {
+
+  //store fish in a list
+  List<Fish> fishList = [];
+
   //default color & speed
   Color color = Colors.blue;
   double speed = 1.0;
+  
 
+  //logic for adding fish
+  void _addFish() {
+    if (fishList.length <10) {
+      setState(() {
+        fishList.add(Fish(color: color, speed: speed, vsync: this));
+      });
+    }
+  }
+  //display ui
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,13 +65,16 @@ class _AquariumScreenState extends State<AquariumScreen> {
           Padding(padding: const EdgeInsets.only(top: 16), child:   Container(
               width: 300,
               height: 300,
-              color: Colors.blue,
-              child: const Center(
-                child: Text('Aquarium Container', ),
-              ),
-            ),),
-            //slider to control speed
+              color: Colors.lightBlue,
+            
+               child: Stack(
+                //display fish
+              children: fishList.map((fish) => fish.build()).toList(),
+            ),
            
+            ),),
+
+            //slider to control speed
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -98,12 +116,14 @@ class _AquariumScreenState extends State<AquariumScreen> {
             ElevatedButton(
               onPressed: () {
                 //add fish functionality
+                _addFish();
               },
                 style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
               ),
               child: const Text('Add Fish 🐟', style: TextStyle(fontSize: 16, color: Colors.white),),
             ),),
+
             //save settings btn
              Padding(padding: const EdgeInsets.only(top: 16), child: 
             ElevatedButton(
@@ -119,6 +139,66 @@ class _AquariumScreenState extends State<AquariumScreen> {
         ),
       ),
     );
+  }
+}
+
+//fish class 
+class Fish {
+  //color & speed
+  final Color color;
+  final double speed;
+  
+  //animation controller
+  final TickerProvider vsync;
+  late AnimationController controller;
+
+ //random x & y directions for fish
+  double x = Random().nextDouble() * 2 - 1;
+  double y = Random().nextDouble() * 2 - 1; 
+
+  //init positions for pish
+  double pX = Random().nextDouble() * 250;
+  double pY = Random().nextDouble() * 250;
+
+  //constructor
+  Fish({required this.color, required this.speed, required this.vsync}) {
+    controller = AnimationController(vsync: vsync, duration: const Duration(seconds: 5))..repeat();
+  }
+
+  //build fish as colored circle
+  Widget build() {
+    return AnimatedBuilder(animation: controller, builder: (context,child) {
+      //movement logic
+      //update pos vased on random directions
+      pX += x * speed;
+      pY += y * speed;
+
+      //if fish hits wall, change direction
+      if (pX < 0 || pX > 280) {
+        x = -x;
+      }
+      if (pY < 0 || pY > 280) {
+        y = -y;
+      }
+      //return fish 
+      return Positioned(
+        left: pX. clamp(0, 280),
+        top: pY. clamp(0, 280),
+        child: Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle
+          ),
+      ),
+      );
+    });
+  }
+
+  //dispose controller
+  void dispose() {
+    controller.dispose();
   }
 }
 
