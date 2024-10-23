@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'database.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,6 +39,33 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
   Color color = Colors.blue;
   double speed = 1.0;
   
+  //inital fish list from db
+  @override
+  void initState() {
+    super.initState();
+    //get fish list from db
+    _getFishFromDB();
+    //get speed from db
+    _getSpeedFromDB();
+  }
+  //get speed from db
+  Future<void> _getSpeedFromDB() async {
+    final savedSpeed = await AquariumDatabase.instance.getSpeed();
+    if (savedSpeed != null) {
+      setState(() {
+        speed = savedSpeed;
+      });
+  }
+  //load fish list
+  final fishData = await AquariumDatabase.instance.getFishList();
+  //add fish to list
+  for(var data in fishData) {
+    setState(() {
+      fishList.add(Fish(color: Color(data['color']), speed: data['speed'], vsync: this, onRemove: (fish) => _removeFish(fish)));
+    });
+  }
+  }
+
 
   //logic for adding fish
   void _addFish() {
@@ -54,6 +82,31 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
       fish.dispose();
       fishList.remove(fish);
     });
+  }
+
+  //save fish to db
+  Future<void> _saveFishToDB() async{
+    //clear fish from db
+    await AquariumDatabase.instance.clearFish();
+    //saves fish color and speed to db
+    for (var fish in fishList) {
+      await AquariumDatabase.instance.saveFish(fish.color.value, fish.speed);
+    }
+    //save speed to db
+    await AquariumDatabase.instance.saveSpeed(speed);
+    //display msg
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings Saved')));
+  }
+
+  //get fish from db
+  Future<void> _getFishFromDB() async {
+    final fishData = await AquariumDatabase.instance.getFishList();
+    //add fish to list
+    for (var data in fishData) {
+      setState(() {
+        fishList.add(Fish (color: Color(data['color']), speed: data['speed'], vsync: this, onRemove: (fish) => _removeFish(fish)));
+      });
+    }
   }
   //display ui
   @override
@@ -137,6 +190,7 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
             ElevatedButton(
               onPressed: () {
                 //save settings functionality
+                _saveFishToDB();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
