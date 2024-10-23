@@ -43,9 +43,17 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
   void _addFish() {
     if (fishList.length <10) {
       setState(() {
-        fishList.add(Fish(color: color, speed: speed, vsync: this));
+        fishList.add(Fish(color: color, speed: speed, vsync: this, onRemove: (fish) => _removeFish(fish)));
       });
     }
+  }
+
+  //logic for removing fish
+  void _removeFish(Fish fish) {
+    setState(() {
+      fish.dispose();
+      fishList.remove(fish);
+    });
   }
   //display ui
   @override
@@ -95,9 +103,9 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
                DropdownButton<Color>(
                  value: color,
                  items: const [
-                   DropdownMenuItem<Color>(value: Colors.blue, child: Text('Blue 🔵')),
-                   DropdownMenuItem<Color>(value: Colors.green, child: Text('Green 🟢')),
                    DropdownMenuItem<Color>(value: Colors.red, child: Text('Red 🔴')),
+                   DropdownMenuItem<Color>(value: Colors.green, child: Text('Green 🟢')),
+                   DropdownMenuItem<Color>(value: Colors.blue, child: Text('Blue 🔵')),
                    DropdownMenuItem<Color>(value: Colors.yellow, child: Text('Yellow 🟡')),
                  ],
                  onChanged: (Color? newColor) {
@@ -139,6 +147,15 @@ class _AquariumScreenState extends State<AquariumScreen> with TickerProviderStat
         ),
       ),
     );
+    
+  }
+  @override
+  void dispose() {
+    //remove all fish controllers
+    for (var fish in fishList) {
+      fish.dispose();
+    }
+    super.dispose();
   }
 }
 
@@ -152,6 +169,9 @@ class Fish {
   final TickerProvider vsync;
   late AnimationController controller;
 
+  //remove fish function
+  final Function(Fish) onRemove;
+
  //random x & y directions for fish
   double x = Random().nextDouble() * 2 - 1;
   double y = Random().nextDouble() * 2 - 1; 
@@ -161,7 +181,7 @@ class Fish {
   double pY = Random().nextDouble() * 250;
 
   //constructor
-  Fish({required this.color, required this.speed, required this.vsync}) {
+  Fish({required this.color, required this.speed, required this.vsync, required this.onRemove}) {
     controller = AnimationController(vsync: vsync, duration: const Duration(seconds: 5))..repeat();
   }
 
@@ -184,7 +204,9 @@ class Fish {
       return Positioned(
         left: pX. clamp(0, 280),
         top: pY. clamp(0, 280),
-        child: Container(
+        child: GestureDetector(
+          onTap: () => onRemove(this),
+          child: Container(
           width: 20,
           height: 20,
           decoration: BoxDecoration(
@@ -192,6 +214,7 @@ class Fish {
             shape: BoxShape.circle
           ),
       ),
+        )
       );
     });
   }
